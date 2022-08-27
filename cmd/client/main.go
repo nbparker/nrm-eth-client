@@ -17,7 +17,7 @@ func main() {
 	// Run without transport creds
 	opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 
-	conn, err := grpc.Dial("localhost:50051", opts...)
+	conn, err := grpc.Dial("nrm-eth_nrm-eth-server_1:50051", opts...)
 	if err != nil {
 		log.Fatalf("Failed to dial: %v", err)
 	}
