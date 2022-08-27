@@ -4,16 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"log"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/nbparker/nrm-eth-client/pkg/proto/nrm"
 )
 
 type NRMClient struct {
-	Client          nrm.NaturalResourceManagementClient
-	JsonUpdatesFile string
+	Client            nrm.NaturalResourceManagementClient
+	UpdatesFolderPath string
 
 	stream nrm.NaturalResourceManagement_StoreClient
 }
@@ -64,17 +65,27 @@ func (c *NRMClient) handleSummaries() {
 
 func (c *NRMClient) getUpdates() []*nrm.GenericUpdate {
 	var updates []*nrm.GenericUpdate
-	// No updates if no file
-	if c.JsonUpdatesFile == "" {
+	// No updates if no folder name
+	if c.UpdatesFolderPath == "" {
 		return updates
 	}
 
-	data, err := ioutil.ReadFile(c.JsonUpdatesFile)
+	files, err := os.ReadDir(c.UpdatesFolderPath)
 	if err != nil {
-		log.Fatalf("Failed to read updates file: %v", err)
+		log.Fatalf("Failed to read dir: %v", err)
 	}
-	if err := json.Unmarshal(data, &updates); err != nil {
-		log.Fatalf("Failed to load updates from json: %v", err)
+
+	for _, file := range files {
+		path := filepath.Join(c.UpdatesFolderPath, file.Name())
+		log.Printf("Reading file: %s", path)
+
+		data, err := os.ReadFile(path)
+		if err != nil {
+			log.Fatalf("Failed to read updates file: %v", err)
+		}
+		if err := json.Unmarshal(data, &updates); err != nil {
+			log.Fatalf("Failed to load updates from json: %v", err)
+		}
 	}
 	return updates
 }
