@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -34,13 +35,13 @@ func (c *NRMClient) RunStore() {
 
 	// Send protos to store
 	updates := c.getUpdates()
-	for i, update := range updates {
+	for _, update := range updates {
 		if err := stream.Send(update); err != nil {
 			log.Fatalf("client.Store: stream.Send(%v) failed: %v", update, err)
 		}
 
 		// TODO remove
-		time.Sleep(time.Second * time.Duration(i+1))
+		time.Sleep(time.Millisecond * 200)
 	}
 }
 
@@ -75,6 +76,7 @@ func (c *NRMClient) getUpdates() []*nrm.GenericUpdate {
 		log.Fatalf("Failed to read dir: %v", err)
 	}
 
+	// Iterate files in updates folder, adding updates
 	for _, file := range files {
 		path := filepath.Join(c.UpdatesFolderPath, file.Name())
 		log.Printf("Reading file: %s", path)
@@ -83,9 +85,23 @@ func (c *NRMClient) getUpdates() []*nrm.GenericUpdate {
 		if err != nil {
 			log.Fatalf("Failed to read updates file: %v", err)
 		}
-		if err := json.Unmarshal(data, &updates); err != nil {
-			log.Fatalf("Failed to load updates from json: %v", err)
+
+		// Attempt to marshall individual json object
+		var _update *nrm.GenericUpdate
+		if err := json.Unmarshal(data, &_update); err == nil {
+			updates = append(updates, _update)
+			continue
 		}
+
+		// Attempt to marshall list of json objects
+		var _updates []*nrm.GenericUpdate
+		if err := json.Unmarshal(data, &_updates); err == nil {
+			updates = append(updates, _updates...)
+			continue
+		}
+
+		// Log but continue to next file
+		fmt.Printf("Failed to read json from file: %s", path)
 	}
 	return updates
 }
