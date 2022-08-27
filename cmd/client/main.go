@@ -12,7 +12,8 @@ import (
 )
 
 var (
-	serverAddr = flag.String("addr", "localhost:50051", "The server address in the format of host:port")
+	serverAddr      = flag.String("addr", "localhost:50051", "The server address in the format of host:port")
+	jsonUpdatesFile = flag.String("json_updates_file", "", "A json file containing a list of updates")
 )
 
 func main() {
@@ -28,10 +29,11 @@ func main() {
 	}
 	defer conn.Close()
 
-	cli := nrm.NewNaturalResourceManagementClient(conn)
-
 	log.Printf("Starting storing: %v", time.Now())
-	nrmClient := &client.NRMClient{}
-	nrmClient.RunStore(cli)
+	nrmClient := &client.NRMClient{
+		Client:          nrm.NewNaturalResourceManagementClient(conn),
+		JsonUpdatesFile: *jsonUpdatesFile,
+	}
+	nrmClient.RunStore()
 	log.Printf("Finished storing: %v", time.Now())
 }
