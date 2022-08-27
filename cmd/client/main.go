@@ -8,13 +8,18 @@ import (
 
 	"github.com/nbparker/nrm-eth-client/pkg/proto/nrm"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func main() {
-	conn, err := grpc.Dial("localhost:50051")
+	var opts []grpc.DialOption
+	// Run without transport creds
+	opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+
+	conn, err := grpc.Dial("localhost:50051", opts...)
 	if err != nil {
-		log.Fatalf("fail to dial: %v", err)
+		log.Fatalf("Failed to dial: %v", err)
 	}
 	defer conn.Close()
 	client := nrm.NewNaturalResourceManagementClient(conn)
@@ -35,14 +40,14 @@ func runNRMStore(client nrm.NaturalResourceManagementClient) {
 	}
 
 	// Connect to stream
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 	stream, err := client.Store(ctx)
 	if err != nil {
 		log.Fatalf("client.Store failed: %v", err)
 	}
 
-	handleNRMSummaries(make(chan struct{}), stream)
+	go handleNRMSummaries(make(chan struct{}), stream)
 
 	// Send protos to store
 	// TODO take as input
@@ -65,7 +70,7 @@ func handleNRMSummaries(waitc chan struct{}, stream nrm.NaturalResourceManagemen
 			return
 		}
 		if err != nil {
-			log.Fatalf("client.Store failed: %v", err)
+			log.Fatalf("client.Store recv failed: %v", err)
 		}
 		log.Printf(
 			"Received summary. Success: %v, Attempts: %d, Last Attempt: %v (error: %s)",
