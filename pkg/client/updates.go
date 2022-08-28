@@ -11,15 +11,15 @@ import (
 	"github.com/nbparker/nrm-eth-client/pkg/proto/nrm"
 )
 
-func GetUpdates(folderPath string, updates chan *nrm.GenericUpdate) {
+func GetUpdates(folderPath string, updates chan *nrm.GenericUpdate) error {
 	// No updates if no folder name
 	if folderPath == "" {
-		log.Fatal("No folder specified so no updates to send")
+		return fmt.Errorf("no folder specified so no updates to send")
 	}
 
 	files, err := os.ReadDir(folderPath)
 	if err != nil {
-		log.Fatalf("Failed to read dir: %v", err)
+		return err
 	}
 
 	// Iterate files in updates folder, adding updates
@@ -55,4 +55,7 @@ func GetUpdates(folderPath string, updates chan *nrm.GenericUpdate) {
 		// Log but continue to next file
 		fmt.Printf("Failed to read json from file: %s", path)
 	}
+
+	return nil
+
 }
