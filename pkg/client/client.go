@@ -34,14 +34,12 @@ func (c *NRMClient) RunStore() {
 	go c.handleSummaries()
 
 	// Send protos to store
-	updates := c.getUpdates()
-	for _, update := range updates {
+	updates := make(chan *nrm.GenericUpdate)
+	go c.getUpdates(updates)
+	for update := range updates {
 		if err := stream.Send(update); err != nil {
 			log.Fatalf("client.Store: stream.Send(%v) failed: %v", update, err)
 		}
-
-		// TODO remove
-		time.Sleep(time.Millisecond * 200)
 	}
 }
 
@@ -64,11 +62,10 @@ func (c *NRMClient) handleSummaries() {
 	}
 }
 
-func (c *NRMClient) getUpdates() []*nrm.GenericUpdate {
-	var updates []*nrm.GenericUpdate
+func (c *NRMClient) getUpdates(updates chan *nrm.GenericUpdate) {
 	// No updates if no folder name
 	if c.UpdatesFolderPath == "" {
-		return updates
+		log.Fatal("No folder specified so no updates to send")
 	}
 
 	files, err := os.ReadDir(c.UpdatesFolderPath)
@@ -89,19 +86,24 @@ func (c *NRMClient) getUpdates() []*nrm.GenericUpdate {
 		// Attempt to marshall individual json object
 		var _update *nrm.GenericUpdate
 		if err := json.Unmarshal(data, &_update); err == nil {
-			updates = append(updates, _update)
+			updates <- _update
+
+			time.Sleep(time.Millisecond * 200) // TODO remove
 			continue
 		}
 
 		// Attempt to marshall list of json objects
 		var _updates []*nrm.GenericUpdate
 		if err := json.Unmarshal(data, &_updates); err == nil {
-			updates = append(updates, _updates...)
+			for _, _update := range _updates {
+				updates <- _update
+
+				time.Sleep(time.Millisecond * 200) // TODO remove
+			}
 			continue
 		}
 
 		// Log but continue to next file
 		fmt.Printf("Failed to read json from file: %s", path)
 	}
-	return updates
 }
