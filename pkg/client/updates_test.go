@@ -32,10 +32,11 @@ func TestGetUpdatesErrors(t *testing.T) {
 
 	for _, c := range cases {
 		updates := make(chan *nrm.GenericUpdate, 10) // buffered channel to allow len check
+		errs := make(chan error)
 
-		got := GetUpdates(c.inPath, updates)
-		if got.Error() != c.want.Error() {
-			t.Errorf("Incorrect error: got '%v', want '%v'", got, c.want)
+		go GetUpdates(c.inPath, updates, errs)
+		if err := <-errs; err.Error() != c.want.Error() {
+			t.Errorf("Incorrect error: got '%v', want '%v'", err, c.want)
 		}
 
 		// Test for empty channel
@@ -52,20 +53,6 @@ func TestGetUpdatesFromJSON(t *testing.T) {
 	if err != nil && !os.IsExist(err) {
 		log.Fatalf("Failed to create folder: %s", err)
 	}
-	// cases := []struct {
-	// 	inPath string
-	// 	want   error
-	// }{
-	// 	{"", fmt.Errorf("no folder specified so no updates to send")},
-	// 	{missingPath, fmt.Errorf("open %s: no such file or directory", missingPath)},
-	// }
-	// {
-	// 	json struct
-	// }{
-	// 	{{}}
-	// }
-
-	// for _, c := range cases {
 
 	// Create json
 	j := genericUpdateJSON{
@@ -87,17 +74,19 @@ func TestGetUpdatesFromJSON(t *testing.T) {
 	var stored *nrm.GenericUpdate
 	json.Unmarshal(b, &stored)
 
-	// Test
 	updates := make(chan *nrm.GenericUpdate)
-	go GetUpdates(folderPath, updates)
+	errs := make(chan error)
+	go GetUpdates(folderPath, updates, errs)
 
-	// if err != nil {
-	// 	t.Errorf("Unexpected error: %w", err)
-	// }
-
+	// Test update
 	update := <-updates
 	if !proto.Equal(update, stored) {
 		t.Errorf("Stored json not matched: got '%v', want '%v'", update, stored)
+	}
+
+	// Test errors
+	if err, ok := <-errs; err != nil || ok {
+		t.Errorf("Unexpected error: %v", err)
 	}
 
 	// Cleanup

@@ -31,10 +31,22 @@ func (c *NRMClient) RunStore() {
 
 	// Send protos to store
 	updates := make(chan *nrm.GenericUpdate)
-	go GetUpdates(c.UpdatesFolderPath, updates)
-	for update := range updates {
-		if err := stream.Send(update); err != nil {
-			log.Fatalf("client.Store: stream.Send(%v) failed: %v", update, err)
+	errs := make(chan error)
+	go GetUpdates(c.UpdatesFolderPath, updates, errs)
+	for {
+		select {
+		case update, ok := <-updates:
+			if !ok {
+				return
+			}
+			if err := stream.Send(update); err != nil {
+				log.Fatalf("client.Store: stream.Send(%v) failed: %v", update, err)
+			}
+		case err, ok := <-errs:
+			if !ok {
+				return
+			}
+			log.Fatalf("GetUpdates: %v", err)
 		}
 	}
 }
