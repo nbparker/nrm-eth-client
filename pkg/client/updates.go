@@ -11,53 +11,57 @@ import (
 	"github.com/nbparker/nrm-eth-client/pkg/proto/nrm"
 )
 
-func GetUpdates(folderPath string, updates chan *nrm.GenericUpdate, errs chan error) {
-	defer close(updates)
-	defer close(errs)
+type GetUpdatesFunc func(updates chan *nrm.GenericUpdate, errs chan error)
 
-	// No updates if no folder name
-	if folderPath == "" {
-		errs <- fmt.Errorf("no folder specified so no updates to send")
-		return
-	}
+func GetUpdatesFromFolder(path string) GetUpdatesFunc {
+	return func(updates chan *nrm.GenericUpdate, errs chan error) {
+		defer close(updates)
+		defer close(errs)
 
-	files, err := os.ReadDir(folderPath)
-	if err != nil {
-		errs <- err
-		return
-	}
+		// No updates if no folder name
+		if path == "" {
+			errs <- fmt.Errorf("no folder specified so no updates to send")
+			return
+		}
 
-	// Iterate files in updates folder, adding updates
-	for _, file := range files {
-		path := filepath.Join(folderPath, file.Name())
-		log.Printf("Reading file: %s", path)
-
-		data, err := os.ReadFile(path)
+		files, err := os.ReadDir(path)
 		if err != nil {
-			log.Fatalf("Failed to read updates file: %v", err)
+			errs <- err
+			return
 		}
 
-		// Attempt to marshall individual json object
-		var _update *nrm.GenericUpdate
-		if err := json.Unmarshal(data, &_update); err == nil {
-			updates <- _update
+		// Iterate files in updates folder, adding updates
+		for _, file := range files {
+			path := filepath.Join(path, file.Name())
+			log.Printf("Reading file: %s", path)
 
-			time.Sleep(time.Millisecond * 200) // TODO remove
-			continue
-		}
+			data, err := os.ReadFile(path)
+			if err != nil {
+				log.Fatalf("Failed to read updates file: %v", err)
+			}
 
-		// Attempt to marshall list of json objects
-		var _updates []*nrm.GenericUpdate
-		if err := json.Unmarshal(data, &_updates); err == nil {
-			for _, _update := range _updates {
+			// Attempt to marshall individual json object
+			var _update *nrm.GenericUpdate
+			if err := json.Unmarshal(data, &_update); err == nil {
 				updates <- _update
 
 				time.Sleep(time.Millisecond * 200) // TODO remove
+				continue
 			}
-			continue
-		}
 
-		// Log but continue to next file
-		fmt.Printf("Failed to read json from file: %s", path)
+			// Attempt to marshall list of json objects
+			var _updates []*nrm.GenericUpdate
+			if err := json.Unmarshal(data, &_updates); err == nil {
+				for _, _update := range _updates {
+					updates <- _update
+
+					time.Sleep(time.Millisecond * 200) // TODO remove
+				}
+				continue
+			}
+
+			// Log but continue to next file
+			fmt.Printf("Failed to read json from file: %s", path)
+		}
 	}
 }

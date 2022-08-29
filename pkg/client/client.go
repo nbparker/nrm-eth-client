@@ -11,8 +11,8 @@ import (
 )
 
 type NRMClient struct {
-	Client            nrm.NaturalResourceManagementClient
-	UpdatesFolderPath string
+	Client     nrm.NaturalResourceManagementClient
+	GetUpdates GetUpdatesFunc
 
 	stream  nrm.NaturalResourceManagement_StoreClient
 	errors  chan error
@@ -27,7 +27,7 @@ func (c *NRMClient) RunStore() error {
 	defer c.cancel()
 
 	go c.handleSummaries()
-	go GetUpdates(c.UpdatesFolderPath, c.updates, c.errors)
+	go c.GetUpdates(c.updates, c.errors)
 	err := c.sendUpdates()
 	c.stream.CloseSend()
 
