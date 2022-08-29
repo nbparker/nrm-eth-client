@@ -14,11 +14,13 @@ import (
 func GetUpdates(folderPath string, updates chan *nrm.GenericUpdate) error {
 	// No updates if no folder name
 	if folderPath == "" {
+		close(updates)
 		return fmt.Errorf("no folder specified so no updates to send")
 	}
 
 	files, err := os.ReadDir(folderPath)
 	if err != nil {
+		close(updates)
 		return err
 	}
 
