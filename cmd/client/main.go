@@ -34,6 +34,8 @@ func main() {
 		Client:            nrm.NewNaturalResourceManagementClient(conn),
 		UpdatesFolderPath: *UpdatesFolderPath,
 	}
-	nrmClient.RunStore()
+	if err := nrmClient.RunStore(); err != nil {
+		log.Fatalf(err.Error())
+	}
 	log.Printf("Finished storing: %v", time.Now())
 }

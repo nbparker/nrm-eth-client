@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"time"
@@ -16,42 +17,47 @@ type NRMClient struct {
 	stream nrm.NaturalResourceManagement_StoreClient
 }
 
-// TODO replace updates with awaitable
-func (c *NRMClient) RunStore() {
+// RunStore finds updates and sends to server
+func (c *NRMClient) RunStore() error {
 	// Connect to stream
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 	stream, err := c.Client.Store(ctx)
 	if err != nil {
-		log.Fatalf("client.Store failed: %v", err)
+		return fmt.Errorf("client.Store failed: %w", err)
 	}
 	c.stream = stream
 
-	go c.handleSummaries()
-
-	// Send protos to store
 	updates := make(chan *nrm.GenericUpdate)
 	errs := make(chan error)
+
+	go c.handleSummaries(errs)
 	go GetUpdates(c.UpdatesFolderPath, updates, errs)
+	return c.sendUpdates(updates, errs)
+}
+
+// sendUpdates to server
+// iterates update and error channels until closed or error
+func (c *NRMClient) sendUpdates(updates chan *nrm.GenericUpdate, errs chan error) error {
 	for {
 		select {
 		case update, ok := <-updates:
 			if !ok {
-				return
+				return nil
 			}
-			if err := stream.Send(update); err != nil {
-				log.Fatalf("client.Store: stream.Send(%v) failed: %v", update, err)
+			if err := c.stream.Send(update); err != nil {
+				return fmt.Errorf("client.Store: stream.Send(%v) failed: %w", update, err)
 			}
 		case err, ok := <-errs:
 			if !ok {
-				return
+				return nil
 			}
-			log.Fatalf("GetUpdates: %v", err)
+			return err
 		}
 	}
 }
 
-func (c *NRMClient) handleSummaries() {
+func (c *NRMClient) handleSummaries(errs chan error) {
 	waitc := make(chan struct{})
 	for {
 		in, err := c.stream.Recv()
@@ -61,7 +67,7 @@ func (c *NRMClient) handleSummaries() {
 			return
 		}
 		if err != nil {
-			log.Fatalf("client.Store recv failed: %v", err)
+			errs <- fmt.Errorf("client.Store recv failed: %w", err)
 		}
 		log.Printf(
 			"Received summary. Success: %v, Attempts: %d, Last Attempt: %v (error: %s)",
