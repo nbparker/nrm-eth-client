@@ -12,7 +12,7 @@ Can be customised to send varied types of protobuf update to the server.
 
 How to:
 
-- Replace `GenericUpdate` protobuf in the proto file with resource of choice (do not rename)
+- Replace `ResourceUpdate` protobuf in the proto file with resource of choice (do not rename)
 - Generate new protos and replace existing in [proto folder](proto/nrm) for both client AND server
 
 ## Usage

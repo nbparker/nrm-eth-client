@@ -16,7 +16,7 @@ type NRMClient struct {
 
 	stream  nrm.NaturalResourceManagement_StoreClient
 	errors  chan error
-	updates chan *nrm.GenericUpdate
+	updates chan *nrm.ResourceUpdate
 	waitc   chan struct{}
 	cancel  context.CancelFunc
 }
@@ -44,7 +44,7 @@ func (c *NRMClient) initialise() error {
 	}
 
 	c.stream = stream
-	c.updates = make(chan *nrm.GenericUpdate)
+	c.updates = make(chan *nrm.ResourceUpdate)
 	c.errors = make(chan error)
 	c.waitc = make(chan struct{})
 	c.cancel = cancel

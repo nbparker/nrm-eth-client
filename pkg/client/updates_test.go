@@ -16,7 +16,7 @@ type pbTimestamp struct {
 	Seconds, Nanos int
 }
 
-type genericUpdateJSON struct {
+type resourceUpdateJSON struct {
 	Start, Finish pbTimestamp
 	Units         int
 }
@@ -32,7 +32,7 @@ func TestGetUpdatesErrors(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		updates := make(chan *nrm.GenericUpdate, 10) // buffered channel to allow len check
+		updates := make(chan *nrm.ResourceUpdate, 10) // buffered channel to allow len check
 		errs := make(chan error)
 
 		go GetUpdatesFromFolder(c.inPath)(updates, errs)
@@ -52,10 +52,10 @@ func TestGetUpdatesFromJSONArray(t *testing.T) {
 	cases := [][]interface{}{
 		// -- single files
 		// empty object
-		{genericUpdateJSON{}},
+		{resourceUpdateJSON{}},
 		// single object
 		{
-			genericUpdateJSON{
+			resourceUpdateJSON{
 				Start:  pbTimestamp{Seconds: 0, Nanos: 857632152},
 				Finish: pbTimestamp{Seconds: 0, Nanos: 857633064},
 				Units:  1111111,
@@ -63,7 +63,7 @@ func TestGetUpdatesFromJSONArray(t *testing.T) {
 		},
 		// single object in array
 		{
-			[]genericUpdateJSON{
+			[]resourceUpdateJSON{
 				{
 					Start:  pbTimestamp{Seconds: 0, Nanos: 857632152},
 					Finish: pbTimestamp{Seconds: 0, Nanos: 857633064},
@@ -73,7 +73,7 @@ func TestGetUpdatesFromJSONArray(t *testing.T) {
 		},
 		// multiple objects in array
 		{
-			[]genericUpdateJSON{
+			[]resourceUpdateJSON{
 				{
 					Start:  pbTimestamp{Seconds: 1111, Nanos: 1111},
 					Finish: pbTimestamp{Seconds: 11111, Nanos: 11111},
@@ -94,12 +94,12 @@ func TestGetUpdatesFromJSONArray(t *testing.T) {
 		// -- multiple files
 		// single objects
 		{
-			genericUpdateJSON{
+			resourceUpdateJSON{
 				Start:  pbTimestamp{Seconds: 1111, Nanos: 1111},
 				Finish: pbTimestamp{Seconds: 1111, Nanos: 1111},
 				Units:  1111,
 			},
-			genericUpdateJSON{
+			resourceUpdateJSON{
 				Start:  pbTimestamp{Seconds: 2222, Nanos: 2222},
 				Finish: pbTimestamp{Seconds: 2222, Nanos: 2222},
 				Units:  2222,
@@ -107,12 +107,12 @@ func TestGetUpdatesFromJSONArray(t *testing.T) {
 		},
 		// mixed objects
 		{
-			genericUpdateJSON{
+			resourceUpdateJSON{
 				Start:  pbTimestamp{Seconds: 1111, Nanos: 1111},
 				Finish: pbTimestamp{Seconds: 1111, Nanos: 1111},
 				Units:  1111,
 			},
-			[]genericUpdateJSON{
+			[]resourceUpdateJSON{
 				{
 					Start:  pbTimestamp{Seconds: 1111, Nanos: 1111},
 					Finish: pbTimestamp{Seconds: 1111, Nanos: 1111},
@@ -129,7 +129,7 @@ func TestGetUpdatesFromJSONArray(t *testing.T) {
 					Units:  3333,
 				},
 			},
-			[]genericUpdateJSON{
+			[]resourceUpdateJSON{
 				{
 					Start:  pbTimestamp{Seconds: 7777, Nanos: 7777},
 					Finish: pbTimestamp{Seconds: 7777, Nanos: 7777},
@@ -153,15 +153,15 @@ func TestGetUpdatesFromJSONArray(t *testing.T) {
 	for _, jsons := range cases {
 		setup(folderPath)
 
-		var stored []*nrm.GenericUpdate
+		var stored []*nrm.ResourceUpdate
 		for i, _json := range jsons {
 			// Specify filename to ensure read in order
 			writeJsonToFile(folderPath, fmt.Sprintf("%d.json", i), _json)
-			_stored := jsonToGenericUpdates(_json)
+			_stored := jsonToResourceUpdates(_json)
 			stored = append(stored, _stored...)
 		}
 
-		updates := make(chan *nrm.GenericUpdate)
+		updates := make(chan *nrm.ResourceUpdate)
 		errs := make(chan error)
 		go GetUpdatesFromFolder(folderPath)(updates, errs)
 
@@ -210,9 +210,9 @@ func writeJsonToFile(folderPath, fileName string, _json interface{}) {
 	}
 }
 
-func jsonToGenericUpdates(_json interface{}) []*nrm.GenericUpdate {
-	// Marshall json to GenericUpdate(s)
-	var stored []*nrm.GenericUpdate
+func jsonToResourceUpdates(_json interface{}) []*nrm.ResourceUpdate {
+	// Marshall json to ResourceUpdate(s)
+	var stored []*nrm.ResourceUpdate
 	b, err := json.Marshal(_json)
 	if err != nil {
 		log.Fatalf("Failed to marshal: %v", err)
@@ -222,9 +222,9 @@ func jsonToGenericUpdates(_json interface{}) []*nrm.GenericUpdate {
 	case reflect.Slice, reflect.Array:
 		json.Unmarshal(b, &stored)
 	default:
-		var stored_ *nrm.GenericUpdate
+		var stored_ *nrm.ResourceUpdate
 		json.Unmarshal(b, &stored_)
-		stored = []*nrm.GenericUpdate{stored_}
+		stored = []*nrm.ResourceUpdate{stored_}
 	}
 	return stored
 }

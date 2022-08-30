@@ -20,7 +20,7 @@ const _ = grpc.SupportPackageIsVersion7
 type NaturalResourceManagementClient interface {
 	// Client-to-server stream
 	//
-	// Accepts a stream of GenericUpdates and
+	// Accepts a stream of ResourceUpdates and
 	// returns StorageSummary
 	Store(ctx context.Context, opts ...grpc.CallOption) (NaturalResourceManagement_StoreClient, error)
 }
@@ -43,7 +43,7 @@ func (c *naturalResourceManagementClient) Store(ctx context.Context, opts ...grp
 }
 
 type NaturalResourceManagement_StoreClient interface {
-	Send(*GenericUpdate) error
+	Send(*ResourceUpdate) error
 	Recv() (*StorageSummary, error)
 	grpc.ClientStream
 }
@@ -52,7 +52,7 @@ type naturalResourceManagementStoreClient struct {
 	grpc.ClientStream
 }
 
-func (x *naturalResourceManagementStoreClient) Send(m *GenericUpdate) error {
+func (x *naturalResourceManagementStoreClient) Send(m *ResourceUpdate) error {
 	return x.ClientStream.SendMsg(m)
 }
 
@@ -70,7 +70,7 @@ func (x *naturalResourceManagementStoreClient) Recv() (*StorageSummary, error) {
 type NaturalResourceManagementServer interface {
 	// Client-to-server stream
 	//
-	// Accepts a stream of GenericUpdates and
+	// Accepts a stream of ResourceUpdates and
 	// returns StorageSummary
 	Store(NaturalResourceManagement_StoreServer) error
 	mustEmbedUnimplementedNaturalResourceManagementServer()
@@ -103,7 +103,7 @@ func _NaturalResourceManagement_Store_Handler(srv interface{}, stream grpc.Serve
 
 type NaturalResourceManagement_StoreServer interface {
 	Send(*StorageSummary) error
-	Recv() (*GenericUpdate, error)
+	Recv() (*ResourceUpdate, error)
 	grpc.ServerStream
 }
 
@@ -115,8 +115,8 @@ func (x *naturalResourceManagementStoreServer) Send(m *StorageSummary) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *naturalResourceManagementStoreServer) Recv() (*GenericUpdate, error) {
-	m := new(GenericUpdate)
+func (x *naturalResourceManagementStoreServer) Recv() (*ResourceUpdate, error) {
+	m := new(ResourceUpdate)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -138,5 +138,5 @@ var NaturalResourceManagement_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "protos/natural_resource_management.proto",
+	Metadata: "protos/generic/natural_resource_management.proto",
 }

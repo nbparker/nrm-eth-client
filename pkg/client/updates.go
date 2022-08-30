@@ -11,12 +11,12 @@ import (
 	"github.com/nbparker/nrm-eth-client/pkg/proto/nrm"
 )
 
-type GetUpdatesFunc func(updates chan *nrm.GenericUpdate, errs chan error)
+type GetUpdatesFunc func(updates chan *nrm.ResourceUpdate, errs chan error)
 
 // GetUpdatesFromFolder returns GetUpdatesFunc
 // Reads json from files and adds to updates chan. Closes channel once all files read.
 func GetUpdatesFromFolder(path string) GetUpdatesFunc {
-	return func(updates chan *nrm.GenericUpdate, errs chan error) {
+	return func(updates chan *nrm.ResourceUpdate, errs chan error) {
 		defer close(updates)
 		defer close(errs)
 
@@ -43,7 +43,7 @@ func GetUpdatesFromFolder(path string) GetUpdatesFunc {
 			}
 
 			// Attempt to marshall individual json object
-			var _update *nrm.GenericUpdate
+			var _update *nrm.ResourceUpdate
 			if err := json.Unmarshal(data, &_update); err == nil {
 				updates <- _update
 
@@ -52,7 +52,7 @@ func GetUpdatesFromFolder(path string) GetUpdatesFunc {
 			}
 
 			// Attempt to marshall list of json objects
-			var _updates []*nrm.GenericUpdate
+			var _updates []*nrm.ResourceUpdate
 			if err := json.Unmarshal(data, &_updates); err == nil {
 				for _, _update := range _updates {
 					updates <- _update
