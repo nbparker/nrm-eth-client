@@ -49,48 +49,117 @@ func TestGetUpdatesErrors(t *testing.T) {
 
 func TestGetUpdatesFromJSONArray(t *testing.T) {
 	// Create json
-	cases := []interface{}{
+	cases := [][]interface{}{
+		// -- single files
 		// empty object
-		genericUpdateJSON{},
+		{genericUpdateJSON{}},
 		// single object
-		genericUpdateJSON{
-			Start:  pbTimestamp{Seconds: 0, Nanos: 857632152},
-			Finish: pbTimestamp{Seconds: 0, Nanos: 857633064},
-			Units:  1111111,
-		},
-		// single object in array
-		[]*genericUpdateJSON{
-			{
+		{
+			genericUpdateJSON{
 				Start:  pbTimestamp{Seconds: 0, Nanos: 857632152},
 				Finish: pbTimestamp{Seconds: 0, Nanos: 857633064},
 				Units:  1111111,
 			},
 		},
+		// single object in array
+		{
+			[]genericUpdateJSON{
+				{
+					Start:  pbTimestamp{Seconds: 0, Nanos: 857632152},
+					Finish: pbTimestamp{Seconds: 0, Nanos: 857633064},
+					Units:  1111111,
+				},
+			},
+		},
 		// multiple objects in array
-		[]*genericUpdateJSON{
-			{
+		{
+			[]genericUpdateJSON{
+				{
+					Start:  pbTimestamp{Seconds: 1111, Nanos: 1111},
+					Finish: pbTimestamp{Seconds: 11111, Nanos: 11111},
+					Units:  1111,
+				},
+				{
+					Start:  pbTimestamp{Seconds: 2222, Nanos: 2222},
+					Finish: pbTimestamp{Seconds: 22222, Nanos: 22222},
+					Units:  2222,
+				},
+				{
+					Start:  pbTimestamp{Seconds: 3333, Nanos: 3333},
+					Finish: pbTimestamp{Seconds: 33333, Nanos: 33333},
+					Units:  3333,
+				},
+			},
+		},
+		// -- multiple files
+		// single objects
+		{
+			genericUpdateJSON{
 				Start:  pbTimestamp{Seconds: 1111, Nanos: 1111},
-				Finish: pbTimestamp{Seconds: 11111, Nanos: 11111},
+				Finish: pbTimestamp{Seconds: 1111, Nanos: 1111},
 				Units:  1111,
 			},
-			{
+			genericUpdateJSON{
 				Start:  pbTimestamp{Seconds: 2222, Nanos: 2222},
-				Finish: pbTimestamp{Seconds: 22222, Nanos: 22222},
+				Finish: pbTimestamp{Seconds: 2222, Nanos: 2222},
 				Units:  2222,
 			},
-			{
-				Start:  pbTimestamp{Seconds: 3333, Nanos: 3333},
-				Finish: pbTimestamp{Seconds: 33333, Nanos: 33333},
-				Units:  3333,
+		},
+		// mixed objects
+		{
+			genericUpdateJSON{
+				Start:  pbTimestamp{Seconds: 1111, Nanos: 1111},
+				Finish: pbTimestamp{Seconds: 1111, Nanos: 1111},
+				Units:  1111,
+			},
+			[]genericUpdateJSON{
+				{
+					Start:  pbTimestamp{Seconds: 1111, Nanos: 1111},
+					Finish: pbTimestamp{Seconds: 1111, Nanos: 1111},
+					Units:  1111,
+				},
+				{
+					Start:  pbTimestamp{Seconds: 2222, Nanos: 2222},
+					Finish: pbTimestamp{Seconds: 2222, Nanos: 2222},
+					Units:  2222,
+				},
+				{
+					Start:  pbTimestamp{Seconds: 3333, Nanos: 3333},
+					Finish: pbTimestamp{Seconds: 3333, Nanos: 3333},
+					Units:  3333,
+				},
+			},
+			[]genericUpdateJSON{
+				{
+					Start:  pbTimestamp{Seconds: 7777, Nanos: 7777},
+					Finish: pbTimestamp{Seconds: 7777, Nanos: 7777},
+					Units:  7777,
+				},
+				{
+					Start:  pbTimestamp{Seconds: 6666, Nanos: 6666},
+					Finish: pbTimestamp{Seconds: 6666, Nanos: 6666},
+					Units:  6666,
+				},
+				{
+					Start:  pbTimestamp{Seconds: 4444, Nanos: 4444},
+					Finish: pbTimestamp{Seconds: 4444, Nanos: 4444},
+					Units:  4444,
+				},
 			},
 		},
 	}
 
 	const folderPath = "new_folder"
-	for _, _json := range cases {
+	for _, jsons := range cases {
 		setup(folderPath)
-		writeJsonToFile(folderPath, _json)
-		stored := jsonToGenericUpdates(_json)
+
+		var stored []*nrm.GenericUpdate
+		for i, _json := range jsons {
+			// Specify filename to ensure read in order
+			writeJsonToFile(folderPath, fmt.Sprintf("%d.json", i), _json)
+			_stored := jsonToGenericUpdates(_json)
+			stored = append(stored, _stored...)
+		}
 
 		updates := make(chan *nrm.GenericUpdate)
 		errs := make(chan error)
@@ -129,9 +198,9 @@ func setup(folderPath string) {
 	}
 }
 
-func writeJsonToFile(folderPath string, _json interface{}) {
+func writeJsonToFile(folderPath, fileName string, _json interface{}) {
 	// Write json to file
-	file, err := os.CreateTemp(folderPath, "*.json")
+	file, err := os.CreateTemp(folderPath, fileName)
 	if err != nil {
 		log.Fatalf("Failed to create file: %s", err)
 	}
