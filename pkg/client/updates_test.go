@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/golang/protobuf/proto"
@@ -46,60 +47,18 @@ func TestGetUpdatesErrors(t *testing.T) {
 	}
 }
 
-func TestGetUpdatesFromJSONSingle(t *testing.T) {
-	// Create folder to write test files to
-	folderPath := "new_folder"
-	err := os.Mkdir(folderPath, 0777)
-	if err != nil && !os.IsExist(err) {
-		log.Fatalf("Failed to create folder: %s", err)
-	}
-
-	// Create json
-	j := genericUpdateJSON{
-		Start:  pbTimestamp{Seconds: 0, Nanos: 857632152},
-		Finish: pbTimestamp{Seconds: 0, Nanos: 857633064},
-		Units:  1111111,
-	}
-
-	// Write json to file
-	file, err := os.CreateTemp(folderPath, "*.json")
-	if err != nil {
-		log.Fatalf("Failed to create file: %s", err)
-	}
-	enc := json.NewEncoder(file)
-	enc.Encode(j)
-
-	// Marshall json to GenericUpdate
-	b, _ := json.Marshal(j)
-	var stored *nrm.GenericUpdate
-	json.Unmarshal(b, &stored)
-
-	updates := make(chan *nrm.GenericUpdate)
-	errs := make(chan error)
-	go GetUpdatesFromFolder(folderPath)(updates, errs)
-
-	// Test update
-	update := <-updates
-	if !proto.Equal(update, stored) {
-		t.Errorf("Stored json not matched: got '%v', want '%v'", update, stored)
-	}
-
-	// Test errors
-	if err, ok := <-errs; err != nil || ok {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	// Cleanup
-	err = os.RemoveAll(folderPath)
-	if err != nil {
-		log.Fatalf("Failed to cleanup: %s", err)
-	}
-}
-
 func TestGetUpdatesFromJSONArray(t *testing.T) {
 	// Create json
-	cases := [][]*genericUpdateJSON{
-		// single item in array
+	cases := []interface{}{
+		// empty object
+		genericUpdateJSON{},
+		// single object
+		genericUpdateJSON{
+			Start:  pbTimestamp{Seconds: 0, Nanos: 857632152},
+			Finish: pbTimestamp{Seconds: 0, Nanos: 857633064},
+			Units:  1111111,
+		},
+		// single object in array
 		[]*genericUpdateJSON{
 			{
 				Start:  pbTimestamp{Seconds: 0, Nanos: 857632152},
@@ -107,7 +66,7 @@ func TestGetUpdatesFromJSONArray(t *testing.T) {
 				Units:  1111111,
 			},
 		},
-		// multiple items in array
+		// multiple objects in array
 		[]*genericUpdateJSON{
 			{
 				Start:  pbTimestamp{Seconds: 1111, Nanos: 1111},
@@ -127,26 +86,11 @@ func TestGetUpdatesFromJSONArray(t *testing.T) {
 		},
 	}
 
-	for _, j := range cases {
-		// Create folder to write test files to
-		folderPath := "new_folder"
-		err := os.Mkdir(folderPath, 0777)
-		if err != nil && !os.IsExist(err) {
-			log.Fatalf("Failed to create folder: %s", err)
-		}
-
-		// Write json to file
-		file, err := os.CreateTemp(folderPath, "*.json")
-		if err != nil {
-			log.Fatalf("Failed to create file: %s", err)
-		}
-		enc := json.NewEncoder(file)
-		enc.Encode(j)
-
-		// Marshall json to GenericUpdate
-		b, _ := json.Marshal(j)
-		var stored []*nrm.GenericUpdate
-		json.Unmarshal(b, &stored)
+	const folderPath = "new_folder"
+	for _, _json := range cases {
+		setup(folderPath)
+		writeJsonToFile(folderPath, _json)
+		stored := jsonToGenericUpdates(_json)
 
 		updates := make(chan *nrm.GenericUpdate)
 		errs := make(chan error)
@@ -165,10 +109,53 @@ func TestGetUpdatesFromJSONArray(t *testing.T) {
 			t.Errorf("Unexpected error: %v", err)
 		}
 
-		// Cleanup
-		err = os.RemoveAll(folderPath)
-		if err != nil {
-			log.Fatalf("Failed to cleanup: %s", err)
-		}
+		cleanup(folderPath)
 	}
+}
+
+func cleanup(folderPath string) {
+	if err := os.RemoveAll(folderPath); err != nil {
+		log.Fatalf("Failed to cleanup: %s", err)
+	}
+}
+
+func setup(folderPath string) {
+	cleanup(folderPath) // in case folder remaining
+
+	// Create folder to write test files to
+	err := os.Mkdir(folderPath, 0777)
+	if err != nil && !os.IsExist(err) {
+		log.Fatalf("Failed to create folder: %s", err)
+	}
+}
+
+func writeJsonToFile(folderPath string, _json interface{}) {
+	// Write json to file
+	file, err := os.CreateTemp(folderPath, "*.json")
+	if err != nil {
+		log.Fatalf("Failed to create file: %s", err)
+	}
+	enc := json.NewEncoder(file)
+	if err := enc.Encode(_json); err != nil {
+		log.Fatalf("Failed to encode: %v", err)
+	}
+}
+
+func jsonToGenericUpdates(_json interface{}) []*nrm.GenericUpdate {
+	// Marshall json to GenericUpdate(s)
+	var stored []*nrm.GenericUpdate
+	b, err := json.Marshal(_json)
+	if err != nil {
+		log.Fatalf("Failed to marshal: %v", err)
+	}
+
+	switch reflect.TypeOf(_json).Kind() {
+	case reflect.Slice, reflect.Array:
+		json.Unmarshal(b, &stored)
+	default:
+		var stored_ *nrm.GenericUpdate
+		json.Unmarshal(b, &stored_)
+		stored = []*nrm.GenericUpdate{stored_}
+	}
+	return stored
 }
