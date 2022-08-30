@@ -13,6 +13,8 @@ import (
 
 type GetUpdatesFunc func(updates chan *nrm.GenericUpdate, errs chan error)
 
+// GetUpdatesFromFolder returns GetUpdatesFunc
+// Reads json from files and adds to updates chan. Closes channel once all files read.
 func GetUpdatesFromFolder(path string) GetUpdatesFunc {
 	return func(updates chan *nrm.GenericUpdate, errs chan error) {
 		defer close(updates)
@@ -61,6 +63,7 @@ func GetUpdatesFromFolder(path string) GetUpdatesFunc {
 			}
 
 			// Log but continue to next file
+			// TODO improve by handling as warning
 			fmt.Printf("Failed to read json from file: %s", path)
 		}
 	}
