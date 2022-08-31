@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.6.1
-// source: protos/generic/natural_resource_management.proto
+// source: protos/carbon/carbon_emissions_management.proto
 
 package nrm
 
@@ -142,5 +142,5 @@ var NaturalResourceManagement_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "protos/generic/natural_resource_management.proto",
+	Metadata: "protos/carbon/carbon_emissions_management.proto",
 }

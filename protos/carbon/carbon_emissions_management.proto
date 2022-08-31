@@ -1,0 +1,32 @@
+syntax = "proto3";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/nbparker/nrm-eth-client/pkg/proto/nrm";
+
+package nrm;
+
+// Generic service that can be duplicated & modified to store specific natural resources
+//
+// Replace ResourceUpdate with chosen fields
+service NaturalResourceManagement {
+    // Client-to-server stream
+    //
+    // Accepts a stream of ResourceUpdates and
+    // returns StorageSummary
+    rpc Store(stream ResourceUpdate) returns (stream StorageSummary) {}
+}
+
+// Carbon Emissions Update
+message ResourceUpdate {
+    int64 weight_grams = 1;
+    google.protobuf.Timestamp start = 2;
+    google.protobuf.Timestamp finish = 3;
+}
+
+// Summary of the storage operation
+message StorageSummary {
+    bool success = 1;
+    int32 attempts = 2;
+    google.protobuf.Timestamp last_attempted_at = 3;
+    string failure_message = 4;
+}

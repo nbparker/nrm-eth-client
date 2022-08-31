@@ -1,4 +1,4 @@
-FROM golang:1.18-alpine3.16
+FROM golang:1.18-alpine3.16 as base
 
 WORKDIR /work
 ENV GO111MODULE=on \
@@ -8,6 +8,16 @@ ENV GO111MODULE=on \
 
 COPY . .
 RUN go mod download
-RUN go build cmd/client/main.go
 
+FROM base as fish
+
+RUN rm -rf pkg/proto/nrm
+COPY protos/fish pkg/proto/nrm
+RUN go build cmd/client/main.go
+ENTRYPOINT ["go", "run", "cmd/client/main.go"]
+
+# Default
+FROM base
+
+RUN go build cmd/client/main.go
 ENTRYPOINT ["go", "run", "cmd/client/main.go"]
