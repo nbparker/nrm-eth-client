@@ -16,6 +16,13 @@ COPY protos/fish pkg/proto/nrm
 RUN go build cmd/client/main.go
 ENTRYPOINT ["go", "run", "cmd/client/main.go"]
 
+FROM base as carbon
+
+RUN rm -rf pkg/proto/nrm
+COPY protos/carbon pkg/proto/nrm
+RUN go build cmd/client/main.go
+ENTRYPOINT ["go", "run", "cmd/client/main.go"]
+
 # Default
 FROM base
 
