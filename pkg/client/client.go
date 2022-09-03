@@ -18,26 +18,13 @@ type NRMClient struct {
 	errors  chan error
 	updates chan *nrm.ResourceUpdate
 	waitc   chan struct{}
-	cancel  context.CancelFunc
 }
 
 // RunStore finds updates and sends to server
 func (c *NRMClient) RunStore() error {
-	c.initialise()
-	defer c.cancel()
-
-	go c.handleSummaries()
-	go c.GetUpdates(c.updates, c.errors)
-	err := c.sendUpdates()
-	c.stream.CloseSend()
-
-	<-c.waitc
-	return err
-}
-
-func (c *NRMClient) initialise() error {
 	// Connect to stream
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
 	stream, err := c.Client.Store(ctx)
 	if err != nil {
 		return fmt.Errorf("client.Store failed: %w", err)
@@ -47,14 +34,19 @@ func (c *NRMClient) initialise() error {
 	c.updates = make(chan *nrm.ResourceUpdate)
 	c.errors = make(chan error)
 	c.waitc = make(chan struct{})
-	c.cancel = cancel
-	return nil
+
+	go c.handleSummaries()
+	go c.GetUpdates(c.updates, c.errors)
+	err = c.sendUpdates()
+	c.stream.CloseSend()
+
+	<-c.waitc
+	return err
 }
 
 // sendUpdates to server
 // iterates update and error channels until closed or error
 func (c *NRMClient) sendUpdates() error {
-
 	for {
 		select {
 		case update, ok := <-c.updates:

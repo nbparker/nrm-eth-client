@@ -13,7 +13,7 @@ import (
 
 var (
 	serverAddr        = flag.String("addr", "localhost:50051", "The server address in the format of host:port")
-	UpdatesFolderPath = flag.String("updates_folder", "", "A folder containing json files with a list of updates")
+	updatesFolderPath = flag.String("updates_folder", "", "A folder containing json files with a list of updates")
 )
 
 func main() {
@@ -32,7 +32,7 @@ func main() {
 	log.Printf("Starting storing: %v", time.Now())
 	nrmClient := &client.NRMClient{
 		Client:     nrm.NewNaturalResourceManagementClient(conn),
-		GetUpdates: client.GetUpdatesFromFolder(*UpdatesFolderPath),
+		GetUpdates: client.GetUpdatesFromFolder(*updatesFolderPath),
 	}
 	if err := nrmClient.RunStore(); err != nil {
 		log.Fatalf(err.Error())
