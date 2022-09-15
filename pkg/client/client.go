@@ -21,6 +21,12 @@ type NRMClient struct {
 }
 
 // RunStore finds updates and sends to server
+//
+// Spawns new Goroutines for handleSummaries and getUpdates to allow
+// each method to run concurrently. These share the same error channel
+// which is monitored by sendUpdates to allow effective error handling
+// without the need for blocking functions waiting for an error to be
+// returned
 func (c *NRMClient) RunStore() error {
 	// Connect to stream
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -30,11 +36,13 @@ func (c *NRMClient) RunStore() error {
 		return fmt.Errorf("client.Store failed: %w", err)
 	}
 
+	// Initialise client requirements
 	c.stream = stream
 	c.updates = make(chan *nrm.ResourceUpdate)
 	c.errors = make(chan error)
 	c.waitc = make(chan struct{})
 
+	// Spawn as Goroutines
 	go c.handleSummaries()
 	go c.GetUpdates(c.updates, c.errors)
 	err = c.sendUpdates()

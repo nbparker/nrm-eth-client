@@ -11,6 +11,10 @@ import (
 	"github.com/nbparker/nrm-eth-client/pkg/proto/nrm"
 )
 
+// GetUpdatesFunc defines a type for use with NRMClient for inputing updates
+//
+// Use of channels allows non-blocking input and potential for a more event-driven
+// function than is implemented in GetUpdatesFromFolder
 type GetUpdatesFunc func(updates chan *nrm.ResourceUpdate, errs chan error)
 
 // GetUpdatesFromFolder returns GetUpdatesFunc
@@ -63,7 +67,6 @@ func GetUpdatesFromFolder(path string) GetUpdatesFunc {
 			}
 
 			// Log but continue to next file
-			// TODO improve by handling as warning
 			fmt.Printf("Failed to read json from file: %s", path)
 		}
 	}
