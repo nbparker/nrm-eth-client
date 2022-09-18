@@ -8,8 +8,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/nbparker/nrm-eth-client/pkg/proto/nrm"
-	"google.golang.org/protobuf/proto"
 )
 
 type pbTimestamp struct {

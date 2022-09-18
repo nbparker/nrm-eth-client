@@ -6,12 +6,11 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/nbparker/nrm-eth-client/pkg/proto/nrm"
 )
 
-// GetUpdatesFunc defines a type for use with NRMClient for inputing updates
+// GetUpdatesFunc defines a type for use with NRMClient for inputting updates
 //
 // Use of channels allows non-blocking input and potential for a more event-driven
 // function than is implemented in GetUpdatesFromFolder
@@ -50,8 +49,6 @@ func GetUpdatesFromFolder(path string) GetUpdatesFunc {
 			var _update *nrm.ResourceUpdate
 			if err := json.Unmarshal(data, &_update); err == nil {
 				updates <- _update
-
-				time.Sleep(time.Millisecond * 200) // TODO remove
 				continue
 			}
 
@@ -60,8 +57,6 @@ func GetUpdatesFromFolder(path string) GetUpdatesFunc {
 			if err := json.Unmarshal(data, &_updates); err == nil {
 				for _, _update := range _updates {
 					updates <- _update
-
-					time.Sleep(time.Millisecond * 200) // TODO remove
 				}
 				continue
 			}
